@@ -103,7 +103,8 @@ def accept_reject_sample(prob: Callable, n: int, limits: Space,
             n_to_produce = n - tf.shape(sample, out_type=tf.int64)[0]
         do_print = settings.get_verbosity() > 5
         if do_print:
-            print_op = tf.print("Number of samples to produce:", n_to_produce, " with efficiency ", eff)
+            print_op = tf.print("Number of samples to produce:", n_to_produce, " with efficiency ", eff,
+                                "current sample shape:", "empty" if sample is None else tf.shape(sample))
         with tf.control_dependencies([print_op] if do_print else []):
             n_to_produce = tf.to_int64(ztf.to_real(n_to_produce) / eff * 1.01) + 100  # just to make sure
         # TODO: adjustable efficiency cap for memory efficiency (prevent too many samples at once produced)
@@ -167,8 +168,8 @@ def accept_reject_sample(prob: Callable, n: int, limits: Space,
                            swap_memory=True,
                            parallel_iterations=4,
                            back_prop=False)[1]  # backprop not needed here
-    if multiple_limits:
-        sample = tf.random.shuffle(sample)  # to make sure, randomly remove and not biased.
+    # if multiple_limits:
+    sample = tf.random.shuffle(sample)  # to make sure, randomly remove and not biased.
     new_sample = sample[:n, :]  # cutting away to many produced
 
     # TODO(Mayou36): uncomment below. Why was set_shape needed? leave away to catch failure over time
@@ -223,6 +224,7 @@ def extended_sampling(pdfs: Union[Iterable[ZfitPDF], ZfitPDF], limits: Space) ->
     pdfs = extract_extended_pdfs(pdfs)
 
     for pdf in pdfs:
+        raise RuntimeError("TODO: Fix n in sample loop, it should be random but inside the while it should be fixed.")
         n = tf.random.poisson(lam=pdf.get_yield(), shape=(), dtype=ztypes.float)
         sample = pdf._single_hook_sample(limits=limits, n=n, name="extended_sampling")
         # sample.set_shape((n, limits.n_obs))
